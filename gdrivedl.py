@@ -25,6 +25,9 @@ FOLDER_PATTERN  = re.compile("window\['_DRIVE_ivd'\] = '(.*?)';", re.DOTALL|re.I
 CONFIRM_PATTERN = re.compile("download_warning[0-9A-Za-z_-]+=([0-9A-Za-z_-]+);", re.IGNORECASE)
 FOLDER_TYPE     = 'application/vnd.google-apps.folder'
 
+def safe_filename(filename):
+    return re.sub(r'[^.=_ \w\d-]', '_', filename)
+
 def process_item(id, directory):
     url = ITEM_URL.format(id=id)
     
@@ -38,16 +41,7 @@ def process_item(id, directory):
         data  = data.encode().decode('unicode_escape')
         data  = json.loads(data)
         
-        file_name = data[1]
-
-        #sometimes filname has whole link address, due to which file is not saved
-        if 'http' in file_name:
-            file_name= file_name.split(' ')[-1]
-        if 'http' in file_name:
-            print('Invalid File Name, please report to devs to fix')
-            sys.exit(1)
-
-
+        file_name = safe_filename(data[1])
         file_size = int(data[25][2])
         file_path = os.path.join(directory, file_name)
 
@@ -83,7 +77,7 @@ def process_folder(id, directory, html=None):
 
     for item in sorted(data[0], key=lambda i: i[3] == FOLDER_TYPE):
         item_id   = item[0]
-        item_name = item[2]
+        item_name = safe_filename(item[2])
         item_type = item[3]
         item_size = item[13]
         item_path = os.path.join(directory, item_name)
